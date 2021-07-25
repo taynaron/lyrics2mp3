@@ -75,10 +75,10 @@ class Lyrics:
         msg = f'Lyrics not found on {self.service} for "{title}"'
         self.validate(lyrics, msg, verbose_gte=2)
 
-    def request(self, url, artist, title):
+    def request(self, url, title, artist=None):
         soup = self.parse_html(url)
         try:
-            parsed_lyrics = self.parse(soup, artist=artist, title=title)
+            parsed_lyrics = self.parse(soup, title=title, artist=artist)
         except ValidationError:
             return None
 

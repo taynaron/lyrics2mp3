@@ -41,6 +41,9 @@ optional.add_argument(
     "--overwrite", action="store_true", help="Overwrite existing lyrics in music files"
 )
 optional.add_argument(
+    "--ignore_artist", action="store_true", help="ignore files' artists, look at song name only"
+)
+optional.add_argument(
     "--simulate",
     "-s",
     action="store_true",
@@ -76,14 +79,14 @@ ly_lm = LyricsLM(verbose=args.verbose)
 ly_sl = LyricsSL(verbose=args.verbose)
 
 
-def get_lyrics(artist, title, album_artist=None):
+def get_lyrics(title, artist=None, album_artist=None):
     parsed_lyrics = None
 
     for parser in [ly_lg, ly_az, ly_lm, ly_sl]:
         if parsed_lyrics is not None:
             break
 
-        parsed_lyrics = parser.request(artist, title)
+        parsed_lyrics = parser.request(title, artist=artist)
 
     # fuzzy match
     if parsed_lyrics is None and "(" in artist or "(" in title:
@@ -91,11 +94,11 @@ def get_lyrics(artist, title, album_artist=None):
             print(f"Trying {title} without parentheses")
         if album_artist:
             artist = album_artist
-        elif "(" in artist:
+        elif artist and "(" in artist:
             artist = artist[: artist.index("(")].strip()
         if "(" in title:
             title = title[: title.index("(")].strip()
-        parsed_lyrics = get_lyrics(artist, title)
+        parsed_lyrics = get_lyrics(title, artist=artist)
 
     if parsed_lyrics is None and args.write_on_not_found:
         return "..."
@@ -140,10 +143,13 @@ def parse_file(file_path):
         return
 
     try:
-        search_album_artist = audiofile.tags.get("ALBUMARTIST")
-        if search_album_artist:
-            search_album_artist = search_album_artist[0].lower()
-        search_artist = audiofile.tags["ARTIST"][0].lower()
+        search_artist=None
+        search_album_artist=None
+        if not args.ignore_artist:
+            search_album_artist = audiofile.tags.get("ALBUMARTIST")
+            if search_album_artist:
+                search_album_artist = search_album_artist[0].lower()
+            search_artist = audiofile.tags["ARTIST"][0].lower()
         search_title = audiofile.tags["TITLE"][0].lower()
     except KeyError:
         if args.verbose:
@@ -152,8 +158,11 @@ def parse_file(file_path):
         return
 
     lyrics = get_lyrics(
-        artist=search_artist, title=search_title, album_artist=search_album_artist
+        title=search_title, artist=search_artist, album_artist=search_album_artist
     )
+
+    artist_str = f"{search_artist}: " if search_artist else ''
+
     if lyrics is not None:
         audiofile.tags["LYRICS"] = lyrics
         if args.simulate:
@@ -162,11 +171,11 @@ def parse_file(file_path):
             audiofile.save()
         added_lyrics += 1
         if args.verbose:
-            print(f"Lyrics found for {search_artist}: {search_title}")
+            print(f"Lyrics found for {artist_str}{search_title}")
     else:
         no_lyrics_found += 1
         if args.verbose:
-            print(f"No lyrics found for {search_artist}: {search_title}")
+            print(f"No lyrics found for {artist_str}{search_title}")
 
 
 def report_progress(inline=False):

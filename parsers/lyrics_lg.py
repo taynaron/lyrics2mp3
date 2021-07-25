@@ -9,12 +9,15 @@ class LyricsLG(Lyrics):
         super().__init__("Genius", verbose)
         self.genius = lyricsgenius.Genius(token, verbose=True) if token else None
 
-    def parse(self, artist, title):
+    def parse(self, title, artist=None):
         msg = "Token invalid or missing, skipping Genius"
         self.validate(self.genius, msg, verbose_gte=3)
 
         try:
-            response = self.genius.search_songs(f"{artist} {title}")
+            if artist:
+                response = self.genius.search_songs(f"{artist} {title}")
+            else:
+                response = self.genius.search_songs(title)
         except TypeError:  # token wasn't passed in or found in env
             print("Genius token invalid or missing")
             self.genius = None
@@ -38,12 +41,15 @@ class LyricsLG(Lyrics):
 
         result = Song(result, lyrics)
 
-        self.validate_artist(artist, result.artist)
+        breakpoint()
+
+        if artist:
+            self.validate_artist(artist, result.artist)
         self.validate_title(title, result.title)
 
         return result.lyrics
 
-    def request(self, artist, title):
+    def request(self, title, artist=None):
         try:
             parsed_lyrics = self.parse(artist=artist, title=title)
         except ValidationError:
