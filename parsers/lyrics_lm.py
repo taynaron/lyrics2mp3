@@ -51,6 +51,6 @@ class LyricsLM(Lyrics):
         return parsed_lyrics
 
     def request(self, title, artist=None):
-        artist_q = f"{artist}+" if artist else ''
+        artist_q = f"{artist}+" if artist else ""
         url = f"{self.domain}/search.php?k={artist_q}{title}".replace(" ", "+")
         return super().request(url, title, artist=artist)

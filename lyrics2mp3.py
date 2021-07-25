@@ -41,7 +41,9 @@ optional.add_argument(
     "--overwrite", action="store_true", help="Overwrite existing lyrics in music files"
 )
 optional.add_argument(
-    "--ignore_artist", action="store_true", help="ignore files' artists, look at song name only"
+    "--ignore_artist",
+    action="store_true",
+    help="ignore files' artists, look at song name only",
 )
 optional.add_argument(
     "--simulate",
@@ -143,8 +145,8 @@ def parse_file(file_path):
         return
 
     try:
-        search_artist=None
-        search_album_artist=None
+        search_artist = None
+        search_album_artist = None
         if not args.ignore_artist:
             search_album_artist = audiofile.tags.get("ALBUMARTIST")
             if search_album_artist:
@@ -161,7 +163,7 @@ def parse_file(file_path):
         title=search_title, artist=search_artist, album_artist=search_album_artist
     )
 
-    artist_str = f"{search_artist}: " if search_artist else ''
+    artist_str = f"{search_artist}: " if search_artist else ""
 
     if lyrics is not None:
         audiofile.tags["LYRICS"] = lyrics
@@ -179,16 +181,16 @@ def parse_file(file_path):
 
 
 def report_progress(inline=False):
-        l_sum = have_lyrics + added_lyrics + no_lyrics_found + err
-        txt = f"{added_lyrics} added, {no_lyrics_found} not found, {err} errored."
-        if not args.overwrite:
-            txt = f"{have_lyrics} existing, {txt}"
+    l_sum = have_lyrics + added_lyrics + no_lyrics_found + err
+    txt = f"{added_lyrics} added, {no_lyrics_found} not found, {err} errored."
+    if not args.overwrite:
+        txt = f"{have_lyrics} existing, {txt}"
 
-        txt = f"{l_sum} processed: {txt}"
-        if inline:
-            print(txt)
-        else:
-            print(f"\r{txt}", end="")
+    txt = f"{l_sum} processed: {txt}"
+    if inline:
+        print(txt)
+    else:
+        print(f"\r{txt}", end="")
 
 
 def file_lyrics(file_path):
@@ -196,10 +198,12 @@ def file_lyrics(file_path):
     if not args.verbose:
         report_progress(inline=True)
 
+
 def end_report():
     if args.verbose:
         report_progress()
     print()
+
 
 try:
     if args.dir:
@@ -220,4 +224,3 @@ except KeyboardInterrupt:
     pass
 
 end_report()
-

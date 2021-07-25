@@ -36,6 +36,6 @@ class LyricsSL(Lyrics):
 
     def request(self, title, artist=None):
         search_url = "http://www.songlyrics.com/index.php?section=search&submit=Search&searchIn1=artist&searchIn3=song&searchW="
-        artist_q = f"{artist}+" if artist else ''
+        artist_q = f"{artist}+" if artist else ""
         url = f"{search_url}{artist_q}{title}".replace(" ", "+")
         return super().request(url, title, artist=artist)

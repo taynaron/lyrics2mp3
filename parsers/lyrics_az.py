@@ -37,6 +37,6 @@ class LyricsAZ(Lyrics):
 
     def request(self, title, artist=None):
         search_url = "http://search.azlyrics.com/search.php?q="
-        artist_q = f"{artist} " if artist else ''
+        artist_q = f"{artist} " if artist else ""
         url = f"{search_url}{artist_q}{title}"
         return super().request(url, title, artist=artist)
