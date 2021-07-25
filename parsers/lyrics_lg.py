@@ -41,8 +41,6 @@ class LyricsLG(Lyrics):
 
         result = Song(result, lyrics)
 
-        breakpoint()
-
         if artist:
             self.validate_artist(artist, result.artist)
         self.validate_title(title, result.title)
