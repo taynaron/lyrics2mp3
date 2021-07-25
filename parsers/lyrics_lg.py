@@ -1,7 +1,7 @@
 import lyricsgenius
 from lyricsgenius.song import Song
 
-from .lyrics import Lyrics, ValidationError
+from .lyrics import Lyrics, ValidationError, _clean_str
 
 
 class LyricsLG(Lyrics):
@@ -24,17 +24,23 @@ class LyricsLG(Lyrics):
             return None
 
         results = response["hits"]
+
         self.validate_lyrics_found(results, title)
 
-        # Reject non-songs (Liner notes, track lists, etc.)
+        # Reject non-songs (Liner notes, track lists, etc.), look for a best title match
+        # take the first result if no exact match found
         get_lyrics = self.genius._result_is_lyrics
-        result = next(
-            (r["result"] for r in results if get_lyrics(r["result"]["title"])),
-            None,
-        )
+        results = [r["result"] for r in results if get_lyrics(r["result"])]
+        result = None
+        if results:
+            cln_title = _clean_str(title)
+            result = next(
+                (r for r in results if _clean_str(r["title"]) == cln_title),
+                results[0],
+            )
         self.validate(result, f"No valid Genius result for {title}.", verbose_gte=2)
 
-        lyrics = self.genius.lyrics(result["url"])
+        lyrics = self.genius.lyrics(result["id"])
 
         # Skip results when URL is a 404 or lyrics are missing
         self.validate(lyrics, f"No valid URL with lyrics for {title}", verbose_gte=2)
