@@ -43,7 +43,7 @@ optional.add_argument(
 optional.add_argument(
     "--ignore_artist",
     action="store_true",
-    help="ignore files' artists, look at song name only",
+    help="Ignore files' artists, look at song name only",
 )
 optional.add_argument(
     "--simulate",
