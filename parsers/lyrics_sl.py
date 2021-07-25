@@ -1,4 +1,4 @@
-from .lyrics import Lyrics, ValidationError
+from .lyrics import Lyrics
 
 
 class LyricsSL(Lyrics):

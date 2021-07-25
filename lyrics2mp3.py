@@ -62,8 +62,6 @@ if not (args.dir is None or os.path.isdir(args.dir)):
     print(f'Directory "{args.dir}" not found.')
     sys.exit(1)
 
-directory = args.dir
-
 if args.m3u is not None:
     if not os.path.isfile(args.m3u):
         print(f'File "{args.m3u}" not found.')
@@ -127,7 +125,7 @@ def parse_file(file_path):
     try:
         audiofile = taglib.File(file_path)
         old_lyrics = audiofile.tags.get("LYRICS", [""])[0]
-    except OSError as e:
+    except OSError:
         if args.verbose:
             print(f"Could not read {file_path}, skipping")
         err += 1

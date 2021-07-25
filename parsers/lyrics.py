@@ -7,8 +7,8 @@ class ValidationError(Exception):
     pass
 
 
-cruft = re.compile("[\.,\[\]\{\}'’]")
-and_ = re.compile("[\+&]")
+cruft = re.compile(r"[\.,\[\]\{\}'’]")
+and_ = re.compile(r"[\+&]")
 
 
 def _clean_str(in_str):
