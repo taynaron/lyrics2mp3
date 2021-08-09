@@ -11,7 +11,7 @@ from parsers.lyrics_sl import LyricsSL
 
 """
 Lyrics2mp3
-1. Scans directory for music files.
+1. Scans directory or playlist for music files.
 2. Searches lyrics for each song on azlyrics.com
 3. If 'write_on_not_found', inserts lyrics into music file, or '...' if not found
 """
