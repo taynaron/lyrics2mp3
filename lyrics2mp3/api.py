@@ -1,5 +1,3 @@
-import taglib
-
 import os
 
 from .parsers.lyrics_az import LyricsAZ
@@ -69,6 +67,8 @@ class Lyrics2MP3:
         return parsed_lyrics
 
     def parse_file(self, file_path, ignore_artist=False, simulate=False):
+        import taglib
+
         ext = os.path.splitext(file_path)[-1].lower()
         if ext not in (".mp3", ".m4a"):
             return
@@ -115,14 +115,15 @@ class Lyrics2MP3:
         artist_str = f"{search_artist}: " if search_artist else ""
 
         if lyrics is not None:
-            audiofile.tags["LYRICS"] = lyrics
-            if simulate:
-                print("Simulating, not actually saving lyrics")
-            else:
-                audiofile.save()
             self.added_lyrics += 1
             if self.verbose:
                 print(f"Lyrics found for {artist_str}{search_title}")
+            if simulate:
+                print("Simulating, not actually saving lyrics")
+                return lyrics
+
+            audiofile.tags["LYRICS"] = lyrics
+            audiofile.save()
         else:
             self.no_lyrics_found += 1
             if self.verbose:

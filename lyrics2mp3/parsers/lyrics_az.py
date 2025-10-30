@@ -36,7 +36,7 @@ class LyricsAZ(Lyrics):
         return parsed_lyrics
 
     def request(self, title, artist=None):
-        search_url = "http://search.azlyrics.com/search.php?q="
+        search_url = "http://www.azlyrics.com/search/?q="
         artist_q = f"{artist} " if artist else ""
         url = f"{search_url}{artist_q}{title}"
         return super().request(url, title, artist=artist)

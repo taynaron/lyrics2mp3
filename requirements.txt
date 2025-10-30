@@ -1,4 +1,4 @@
 beautifulsoup4
 requests>=2
-pytaglib
-lyricsgenius>=3.0.1,<4.0
+pytaglib==3.0.0
+lyricsgenius>=3.7.0,<4.0
