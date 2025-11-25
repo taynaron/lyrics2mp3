@@ -1,4 +1,5 @@
-import os
+from pathlib import Path
+from typing import Optional, Union
 
 from .parsers.lyrics_az import LyricsAZ
 from .parsers.lyrics_lg import LyricsLG
@@ -7,14 +8,28 @@ from .parsers.lyrics_sl import LyricsSL
 
 
 class Lyrics2MP3:
+    """
+    Main class for Lyrics2MP3 functionality.
+    """
+
     def __init__(
         self,
         verbose: bool = False,
         manually_confirm: bool = False,
         write_on_not_found: bool = False,
         overwrite: bool = False,
-        lg_token: str = None,
+        lg_token: Optional[str] = None,
     ):
+        """
+        Initialize Lyrics2MP3.
+
+        Args:
+            verbose: Enable verbose output.
+            manually_confirm: Require manual confirmation for changes.
+            write_on_not_found: Write '...' if no lyrics are found.
+            overwrite: Overwrite existing lyrics.
+            lg_token: Lyrics Genius API token. Required to use Lyrics Genius, generally the best source of lyrics.
+        """
         self.verbose = verbose
         self.manually_confirm = manually_confirm
         self.write_on_not_found = write_on_not_found
@@ -27,38 +42,46 @@ class Lyrics2MP3:
 
         lyrics_args = dict(verbose=verbose, manually_confirm=manually_confirm)
 
-        self.ly_lg = None
+        self.parsers = [
+            LyricsAZ(**lyrics_args),
+            LyricsLM(**lyrics_args),
+            LyricsSL(**lyrics_args),
+        ]
+
         if lg_token:
-            self.ly_lg = LyricsLG(lg_token, **lyrics_args)
+            self.parsers.insert(0, LyricsLG(lg_token, **lyrics_args))
 
-        self.ly_az = LyricsAZ(**lyrics_args)
-        self.ly_lm = LyricsLM(**lyrics_args)
-        self.ly_sl = LyricsSL(**lyrics_args)
-
-    def get_lyrics(self, title, artist=None, album_artist=None):
+    def get_lyrics(
+        self,
+        title: str,
+        artist: Optional[str] = None,
+        album_artist: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Search for lyrics using available parsers.
+        """
         parsed_lyrics = None
 
-        for parser in [self.ly_lg, self.ly_az, self.ly_lm, self.ly_sl]:
-            if parser is None:
-                continue
-
-            if parsed_lyrics is not None:
+        for parser in self.parsers:
+            parsed_lyrics = parser.request(title, artist=artist)
+            if parsed_lyrics:
                 break
 
-            parsed_lyrics = parser.request(title, artist=artist)
-
-        # fuzzy match
+        # Fuzzy match logic
         if parsed_lyrics is None and (
-            artist and "(" in artist or title and "(" in title
+            (artist and "(" in artist) or (title and "(" in title)
         ):
             if self.verbose:
                 print(f"Trying {title} without parentheses")
+
             if album_artist:
                 artist = album_artist
             elif artist and "(" in artist:
-                artist = artist[: artist.index("(")].strip()
+                artist = artist.split("(")[0].strip()
+
             if "(" in title:
-                title = title[: title.index("(")].strip()
+                title = title.split("(")[0].strip()
+
             parsed_lyrics = self.get_lyrics(title, artist=artist)
 
         if parsed_lyrics is None and self.write_on_not_found:
@@ -66,15 +89,23 @@ class Lyrics2MP3:
 
         return parsed_lyrics
 
-    def parse_file(self, file_path, ignore_artist=False, simulate=False):
+    def parse_file(
+        self,
+        file_path: Union[str, Path],
+        ignore_artist: bool = False,
+        simulate: bool = False,
+    ) -> Optional[str]:
+        """
+        Process a single music file.
+        """
+        file_path = Path(file_path)
+        if file_path.suffix.lower() not in (".mp3", ".m4a"):
+            return None
+
         import taglib
 
-        ext = os.path.splitext(file_path)[-1].lower()
-        if ext not in (".mp3", ".m4a"):
-            return
-
         try:
-            audiofile = taglib.File(file_path)
+            audiofile = taglib.File(str(file_path))
             old_lyrics = audiofile.tags.get("LYRICS", [""])[0]
         except OSError:
             if self.verbose:
@@ -83,10 +114,8 @@ class Lyrics2MP3:
             return
 
         if not self.overwrite and (
-            old_lyrics is not None
-            and len(old_lyrics) > 10
-            or self.write_on_not_found
-            and old_lyrics == "..."
+            (old_lyrics is not None and len(old_lyrics) > 10)
+            or (self.write_on_not_found and old_lyrics == "...")
         ):
             if self.verbose:
                 print(f"Lyrics found in music file: {file_path}, skipping")
@@ -129,39 +158,65 @@ class Lyrics2MP3:
             if self.verbose:
                 print(f"No lyrics found for {artist_str}{search_title}")
 
-    def get_lyrics_from_dir(self, dir, ignore_artist=False, simulate=False):
-        if not (dir is None or os.path.isdir(dir)):
-            raise LookupError(f'Directory "{dir}" not found.')
+    def get_lyrics_from_dir(
+        self,
+        directory_path: Union[str, Path],
+        ignore_artist: bool = False,
+        simulate: bool = False,
+    ):
+        """
+        Process all music files in a directory recursively.
+        """
+        directory_path = Path(directory_path)
+        if not directory_path.is_dir():
+            raise NotADirectoryError(f'Directory "{directory_path}" not found.')
 
-        for dir_path, _, files in os.walk(dir):
-            for file in files:
+        for file_path in directory_path.rglob("*"):
+            if file_path.is_file():
                 self.file_lyrics(
-                    os.path.join(dir_path, file),
+                    file_path,
                     ignore_artist=ignore_artist,
                     simulate=simulate,
                 )
 
-    def get_lyrics_from_m3u(self, m3u, ignore_artist=False, simulate=False):
-        if not os.path.isfile(m3u):
-            raise FileNotFoundError(f'File "{m3u}" not found.')
+    def get_lyrics_from_m3u(
+        self,
+        m3u_path: Union[str, Path],
+        ignore_artist: bool = False,
+        simulate: bool = False,
+    ):
+        """
+        Process music files listed in an M3U playlist.
+        """
+        m3u_path = Path(m3u_path)
+        if not m3u_path.is_file():
+            raise FileNotFoundError(f'File "{m3u_path}" not found.')
 
-        if not m3u.endswith(".m3u"):
-            raise SyntaxError(f'Playlist "{m3u}" is not M3U format.')
+        if m3u_path.suffix.lower() != ".m3u":
+            raise ValueError(f'Playlist "{m3u_path}" is not M3U format.')
 
-        with open(m3u) as m:
+        with m3u_path.open("r", encoding="utf-8", errors="ignore") as m:
             for line in m:
                 line = line.strip()
-                if line.upper().startswith("#EXT"):
+                if not line or line.upper().startswith("#EXT"):
                     continue
 
                 self.file_lyrics(line, ignore_artist=ignore_artist, simulate=simulate)
 
-    def file_lyrics(self, file_path, ignore_artist=False, simulate=False):
+    def file_lyrics(
+        self,
+        file_path: Union[str, Path],
+        ignore_artist: bool = False,
+        simulate: bool = False,
+    ):
+        """
+        Wrapper around parse_file that also reports progress.
+        """
         self.parse_file(file_path, ignore_artist=ignore_artist, simulate=simulate)
         if not self.verbose:
             self.report_progress(inline=True)
 
-    def report_progress(self, inline=False):
+    def report_progress(self, inline: bool = False):
         l_sum = self.have_lyrics + self.added_lyrics + self.no_lyrics_found + self.err
         txt = f"{self.added_lyrics} added, {self.no_lyrics_found} not found, {self.err} errored."
         if not self.overwrite:
